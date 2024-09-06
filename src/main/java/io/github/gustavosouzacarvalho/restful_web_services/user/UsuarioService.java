@@ -56,19 +56,22 @@ public class UsuarioService {
 
 	// TOKEN
 	public String gerarTokenResetSenha(String email) {
-		Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
-		if (usuarioOpt.isEmpty()) {
-			throw new RuntimeException("Usuário não encontrado com este email.");
-		}
+	    Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+	    if (usuarioOpt.isEmpty()) {
+	        throw new RuntimeException("Usuário não encontrado com este email.");
+	    }
 
-		Usuario usuario = usuarioOpt.get();
-		String token = UUID.randomUUID().toString();
-		LocalDateTime expiryDate = LocalDateTime.now().plusHours(1); // Token válido por 1 hora
+	    Usuario usuario = usuarioOpt.get();
+	    // Remove tokens antigos antes de criar um novo
+	    tokenResetaSenhaRepository.deleteByUsuario(usuario);
 
-		TokenResetaSenha resetaSenha = new TokenResetaSenha(token, usuario, expiryDate);
-		tokenResetaSenhaRepository.save(resetaSenha);
+	    String token = UUID.randomUUID().toString();
+	    LocalDateTime expiryDate = LocalDateTime.now().plusHours(1); // Token válido por 1 hora
 
-		return token; // Token enviado ao usuário
+	    TokenResetaSenha resetaSenha = new TokenResetaSenha(token, usuario, expiryDate);
+	    tokenResetaSenhaRepository.save(resetaSenha);
+
+	    return token; // Token enviado ao usuário
 	}
 
 	public void resetarSenha(String token, String novaSenha) {

@@ -32,7 +32,7 @@ public class Conta {
             System.out.println("2. Criar conta");
             System.out.println("3. Esqueci minha senha");
 
-            int escolha = scanner.nextInt();
+            int escolha = scanner.nextInt();	
             scanner.nextLine();
 
             switch (escolha) {
@@ -53,7 +53,6 @@ public class Conta {
                 System.out.println("Retornando ao menu principal...");
             }
         }
-
         return token;
     }
 
@@ -106,10 +105,28 @@ public class Conta {
     }
 
     private void esqueciMinhaSenha(Scanner scanner) {
-        System.out.print("Email: ");
+        System.out.print("Digite seu email: ");
         String email = scanner.nextLine();
 
-        usuarioService.gerarTokenResetSenha(email);
-        System.out.println("Token de redefinição de senha enviado para o e-mail.");
+        Optional<Usuario> usuarioOpt = usuarioService.buscarPorEmail(email);
+        if (usuarioOpt.isPresent()) {
+            String token = usuarioService.gerarTokenResetSenha(email);
+            System.out.println("Token de reset de senha gerado: " + token);
+            System.out.println("Por favor, use o token enviado para redefinir sua senha.");
+            
+            System.out.print("Digite o token recebido: ");
+            String tokenRecebido = scanner.nextLine();
+
+            if (tokenRecebido.equals(token)) {
+                System.out.print("Digite a nova senha: ");
+                String novaSenha = scanner.nextLine();
+                usuarioService.resetarSenha(tokenRecebido, novaSenha);
+                System.out.println("Senha redefinida com sucesso!");
+            } else {
+                System.out.println("Token inválido.");
+            }
+        } else {
+            System.out.println("Email não encontrado.");
+        }
     }
 }
