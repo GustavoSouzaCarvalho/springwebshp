@@ -58,6 +58,7 @@ public class ProdutoJPAResource {
             produto.setQuantidadeEmEstoque(produtoAtualizado.getQuantidadeEmEstoque());
             produto.setAtivo(produtoAtualizado.isAtivo());
             produtoService.salvarProduto(produto);
+            produtoService.atualizarProduto(produto);
             return ResponseEntity.ok(produto);
         } else {
             return ResponseEntity.notFound().build();

@@ -89,4 +89,11 @@ public class Venda {
     public void setItensCarrinho(List<Carrinho> itensCarrinho) {
         this.itensCarrinho = itensCarrinho;
     }
+
+	@Override
+	public String toString() {
+		return "Venda [id=" + id + ", data=" + data + ", total=" + total;
+	}
+    
+    
 }

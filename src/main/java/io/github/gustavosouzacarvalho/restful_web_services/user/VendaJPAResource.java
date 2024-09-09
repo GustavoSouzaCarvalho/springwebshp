@@ -82,6 +82,7 @@ public class VendaJPAResource {
         }
         return ResponseEntity.ok(vendas);
     }
+    
 
     @GetMapping("/relatorio/mes/{ano}/{mes}")
     public ResponseEntity<List<Venda>> relatorioPorMes(@PathVariable int ano, @PathVariable int mes) {

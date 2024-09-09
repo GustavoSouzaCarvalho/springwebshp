@@ -43,6 +43,16 @@ public class CarrinhoJPAResource {
         Optional<Carrinho> carrinhoOpt = carrinhoService.buscarPorId(id);
         return carrinhoOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
+    
+    @GetMapping("/token")
+    public ResponseEntity<List<Carrinho>> verCarrinhoPorToken(@RequestParam String token) {
+        try {
+            List<Carrinho> carrinhos = carrinhoService.verCarrinhoPorToken(token);
+            return ResponseEntity.ok(carrinhos);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+    }
 
     // Adicionar um novo item ao carrinho
     @PostMapping("/adicionar")
