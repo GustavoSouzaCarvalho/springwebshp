@@ -4,7 +4,11 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +30,10 @@ public class UsuarioJPAResource {
     public UsuarioJPAResource(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
     }
+    
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping
     public List<Usuario> listarTodos() {
@@ -83,20 +91,78 @@ public class UsuarioJPAResource {
         }
     }
     
-    //RESETAR SENHA
+    
+    @PostMapping("/criar-conta")
+    public ResponseEntity<String> criarConta(@RequestBody Usuario usuario) {
+        // Verifica se o email já está cadastrado
+        Optional<Usuario> usuarioExistente = usuarioService.buscarPorEmail(usuario.getEmail());
+        if (usuarioExistente.isPresent()) {
+            return ResponseEntity.badRequest().body("Já existe um usuário cadastrado com este email.");
+        }
+
+        usuario.setPapel(Papel.USUARIO);
+
+        // Salva o novo usuário
+        Usuario usuarioSalvo = usuarioService.salvarUsuario(usuario);
+        return ResponseEntity.ok("Conta criada com sucesso para usuário: " + usuarioSalvo.getNome());
+    }
+    
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/criar-conta-admin")
+    public ResponseEntity<String> criarContaAdmin(@RequestBody Usuario usuario) {
+        // Verifica se o email já está cadastrado
+        Optional<Usuario> usuarioExistente = usuarioService.buscarPorEmail(usuario.getEmail());
+        if (usuarioExistente.isPresent()) {
+            return ResponseEntity.badRequest().body("Já existe um usuário cadastrado com este email.");
+        }
+        usuario.setPapel(Papel.ADMIN);
+        // Salva o novo usuário
+        Usuario usuarioSalvo = usuarioService.salvarUsuario(usuario);
+        return ResponseEntity.ok("Conta ADMIN criada com sucesso para: " + usuarioSalvo.getNome());
+    }
+    
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody Usuario usuario) {
+        Optional<Usuario> usuarioOpt = usuarioService.buscarPorEmail(usuario.getEmail());
+        
+        if (usuarioOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Email ou senha inválidos.");
+        }
+        
+        Usuario user = usuarioOpt.get();
+        
+        if (!passwordEncoder.matches(usuario.getSenha(), user.getSenha())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Email ou senha inválidos.");
+        }
+        
+        String token = user.gerarTokenJWT(usuarioService.obterTokenUsuarioLogado(), 3600000);
+        
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(token);
+    }
     
     @PostMapping("/esqueci-minha-senha")
     public ResponseEntity<String> esqueciMinhaSenha(@RequestBody String email) {
-        String token = usuarioService.gerarTokenResetSenha(email);
-        // Aqui envia-se o token ao usuário por email
-        return ResponseEntity.ok("Token de redefinição de senha gerado: " + token);
+        Optional<Usuario> usuarioOpt = usuarioService.buscarPorEmail(email);
+        if (usuarioOpt.isPresent()) {
+            // Token para reset de senha
+            String token = usuarioService.gerarTokenResetSenha(email);
+            return ResponseEntity.ok("Token de redefinição de senha gerado e enviado para o email: " + email);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email não encontrado.");
+        }
     }
     
     @PostMapping("/resetar-senha")
     public ResponseEntity<String> resetarSenha(@RequestParam("token") String token, @RequestParam("novaSenha") String novaSenha) {
-        usuarioService.resetarSenha(token, novaSenha);
-        return ResponseEntity.ok("Senha redefinida com sucesso.");
+        try {
+
+            usuarioService.resetarSenha(token, novaSenha);
+            return ResponseEntity.ok("Senha redefinida com sucesso.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
-    
     
 }

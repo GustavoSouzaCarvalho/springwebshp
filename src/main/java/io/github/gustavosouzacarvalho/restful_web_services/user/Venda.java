@@ -48,8 +48,6 @@ public class Venda {
         this.itensCarrinho = itensCarrinho;
     }
 
-    // Getters e Setters
-
     public Long getId() {
         return id;
     }
